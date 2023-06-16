@@ -1,0 +1,42 @@
+164c164,202
+< exec "$@"
+---
+> export XDG_CONFIG_HOME="$HOME/.config"
+> 
+> # Not steamwebhelper so skip
+> if [[ "$1" != *steamwebhelper* ]]; then
+>   exec "$@"
+>   exit
+> fi
+> 
+> args=()
+> 
+> # Read blocklist from ~/.config/steam-flag-blocklist.conf
+> blocklisted_flags=()
+> while read flag; do
+>     blocklisted_flags+=("$flag")
+> done < "$XDG_CONFIG_HOME/steam-flags-blocklist.conf"
+> 
+> # Filter arguments using the blocklist
+> for arg in "$@"; do
+>   include_arg=true
+> 
+>   for blocklisted_flag in "${blocklisted_flags[@]}"; do
+>     if [[ "$arg" == "$blocklisted_flag" ]]; then
+>       include_arg=false
+>     fi
+>   done
+> 
+>   if $include_arg; then
+>     args+=("$arg")
+>   fi
+> done
+> 
+> # Add additional flags from ~/.config/steam-flags.conf
+> while read flag; do
+>     args+=("$flag")
+> done < "$XDG_CONFIG_HOME/steam-flags.conf"
+> 
+> # Execute
+> echo "${args[@]}" >> /tmp/steam-args
+> exec "${args[@]}"
